@@ -6,53 +6,50 @@ import gdown
 import os
 
 # --------------------------
-# GOOGLE DRIVE FILE LINKS
+# Download similarity.pkl from Google Drive if not present
 # --------------------------
-# Replace these IDs with your actual Google Drive file IDs
-SIMILARITY_FILE_ID = "YOUR_SIMILARITY_FILE_ID"
-MOVIE_FILE_ID = "YOUR_MOVIE_FILE_ID"
+similarity_file = "similarity.pkl"
+file_id = "1wHH2Z1X6Iy-Lr7UtGIBTmFAKU8mnx0ty"  # Replace with your file ID if changed
+similarity_url = f"https://drive.google.com/uc?id={file_id}"
+
+if not os.path.exists(similarity_file):
+    st.info("Downloading similarity.pkl from Google Drive...")
+    gdown.download(similarity_url, similarity_file, quiet=False)
 
 # --------------------------
-# DOWNLOAD FILES IF NOT PRESENT
+# Load data files
 # --------------------------
-if not os.path.exists("similarity.pkl"):
-    similarity_url = f"https://drive.google.com/uc?id={SIMILARITY_FILE_ID}"
-    gdown.download(similarity_url, "similarity.pkl", quiet=False)
+movies_file = "movie.pkl"
+if not os.path.exists(movies_file):
+    st.error("movie.pkl not found! Please upload it or provide a download method.")
+    st.stop()
 
-if not os.path.exists("movie.pkl"):
-    movie_url = f"https://drive.google.com/uc?id={MOVIE_FILE_ID}"
-    gdown.download(movie_url, "movie.pkl", quiet=False)
+with open(movies_file, "rb") as f:
+    movies = pickle.load(f)
+
+with open(similarity_file, "rb") as f:
+    similarity = pickle.load(f)
 
 # --------------------------
-# FUNCTION: Fetch poster
+# Function: Fetch poster
 # --------------------------
 def fetch_poster(movie_id):
-    # Hardcoded API key
-    api_key = "625d8f254c13b59f8b55eac698470810"
-
+    api_key = "625d8f254c13b59f8b55eac698470810"  # Your TMDB API key
     url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=en-US"
-    response = requests.get(url)
-
-    if response.status_code != 200:
-        return "https://via.placeholder.com/300x450?text=No+Image"
-
-    data = response.json()
-    poster_path = data.get("poster_path")
+    data = requests.get(url).json()
+    poster_path = data.get('poster_path')
     if poster_path:
-        return f"https://image.tmdb.org/t/p/w500{poster_path}"
-    else:
-        return "https://via.placeholder.com/300x450?text=No+Image"
-
+        return "https://image.tmdb.org/t/p/w500" + poster_path
+    return "https://via.placeholder.com/300x450?text=No+Image"
 
 # --------------------------
-# FUNCTION: Recommend movies
+# Function: Recommend movies
 # --------------------------
 def recommend(movie):
     index = movies[movies['title'] == movie].index[0]
     distances = similarity[index]
 
-    movie_list = sorted(list(enumerate(distances)),
-                        reverse=True, key=lambda x: x[1])[1:6]
+    movie_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:6]
 
     recommended_names = []
     recommended_posters = []
@@ -65,16 +62,7 @@ def recommend(movie):
     return recommended_names, recommended_posters
 
 # --------------------------
-# LOAD PICKLE FILES
-# --------------------------
-with open("movie.pkl", "rb") as f:
-    movies = pickle.load(f)
-
-with open("similarity.pkl", "rb") as f:
-    similarity = pickle.load(f)
-
-# --------------------------
-# STREAMLIT UI
+# Streamlit UI
 # --------------------------
 st.title("🎬 Movie Recommendation System")
 
@@ -86,11 +74,27 @@ selected_movie = st.selectbox(
 if st.button("Recommend"):
     names, posters = recommend(selected_movie)
 
-    cols = st.columns(5)
-    for col, name, poster in zip(cols, names, posters):
-        with col:
-            st.text(name)
-            st.image(poster)
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    with col1:
+        st.text(names[0])
+        st.image(posters[0])
+
+    with col2:
+        st.text(names[1])
+        st.image(posters[1])
+
+    with col3:
+        st.text(names[2])
+        st.image(posters[2])
+
+    with col4:
+        st.text(names[3])
+        st.image(posters[3])
+
+    with col5:
+        st.text(names[4])
+        st.image(posters[4])
 
 
 
